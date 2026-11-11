@@ -1,0 +1,73 @@
+name: linux-scheduler-ci
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-scheduler-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARBON_LINUX_IMAGES_SHA: 9e9dacbd5506df6c3ab36aa6de8a807f63ad6a90
+  M01_IMAGE_DIGEST: sha256:5b8595321ec1ddd39332dabc8b9fd051611748b1a6d32059fc8bedc81fe03c3f
+
+jobs:
+  static-regression:
+    name: static-regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify DISABLED_ gtest inventory
+        run: python3 scripts/ci/verify_gtest_disabled_inventory.py
+      - name: Validate CMakePresets JSON
+        run: python3 -m json.tool CMakePresets.json > /dev/null
+      - name: ctest parser self-test
+        run: python3 scripts/ci/test_assert_ctest_parser.py
+
+  linux-container-build:
+    name: linux-container-build
+    needs: static-regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: carbon-scheduler
+          submodules: recursive
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: rediai-carbon/carbon-linux-images
+          ref: ${{ env.CARBON_LINUX_IMAGES_SHA }}
+          path: carbon-linux-images
+      - name: Build GCC buildenv image
+        run: |
+          docker build \
+            -f carbon-linux-images/build/gcc/Containerfile \
+            -t carbon-linux-gcc-buildenv:m07-ci \
+            carbon-linux-images/build/gcc
+      - name: Prepare writable volume for buildagent (UID 1001)
+        run: |
+          docker run --rm \
+            -v m07_scheduler_workspace:/m07 \
+            carbon-linux-gcc-buildenv:m07-ci \
+            bash -c 'mkdir -p /m07 && chown -R 1001:1001 /m07'
+      - name: Configure, build, and test (repo manifest lane)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/carbon-scheduler:/src/carbon-scheduler:ro" \
+            -v m07_scheduler_workspace:/m07 \
+            -e WORK_ROOT=/m07 \
+            -e SRC_ROOT=/src/carbon-scheduler \
+            --user 1001:1001 \
+            carbon-linux-gcc-buildenv:m07-ci \
+            bash /src/carbon-scheduler/scripts/ci/m07_linux_build_test.sh
+      - name: Note port vs repo semantics
+        run: |
+          echo "Repo build uses direct manifest deps (python3, greenlet, carbon-core port)."
+          echo "Packaged carbon-scheduler PORT linux supports differ by registry SHA — D-009."
+          echo "INDEPENDENT_REPRODUCIBILITY_NOT_CLAIMED; INTEGRATION_NOT_VERIFIED."
