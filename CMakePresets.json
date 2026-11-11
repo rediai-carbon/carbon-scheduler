@@ -270,7 +270,28 @@
         "VCPKG_TARGET_TRIPLET": "arm64-linux-trinitydev",
         "VCPKG_HOST_TRIPLET": "arm64-linux-trinitydev"
       }
+    },
+    {
+      "name": "x64-linux-release-out-of-tree",
+      "displayName": "x64 Linux Release (out-of-tree via CARBON_SCHEDULER_BINARY_DIR)",
+      "description": "Set CARBON_SCHEDULER_BINARY_DIR before cmake --preset.",
+      "inherits": "x64-linux-release",
+      "binaryDir": "$env{CARBON_SCHEDULER_BINARY_DIR}"
     }
-    
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-linux-release-out-of-tree",
+      "configurePreset": "x64-linux-release-out-of-tree"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "x64-linux-release-out-of-tree",
+      "configurePreset": "x64-linux-release-out-of-tree",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }
