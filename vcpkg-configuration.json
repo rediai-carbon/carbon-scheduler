@@ -8,6 +8,7 @@
     {
       "kind": "git",
       "repository": "https://github.com/rediai-carbon/carbon-vcpkg-registry.git",
+      "reference": "m22/core-producer-pilot",
       "baseline": "979cee705eb2cf1dee4802187333d5618322f6df",
       "packages": [
         "python3",
