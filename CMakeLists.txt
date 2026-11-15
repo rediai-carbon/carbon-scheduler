@@ -64,6 +64,8 @@ target_precompile_headers(Scheduler PRIVATE src/stdafx.h)
 
 set_target_properties(Scheduler PROPERTIES
     OUTPUT_NAME "_scheduler"
+    BUILD_RPATH "\$ORIGIN/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib"
+    BUILD_RPATH_USE_ORIGIN TRUE
 )
 if(MSVC)
     add_custom_command(
