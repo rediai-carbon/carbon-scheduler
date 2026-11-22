@@ -57,7 +57,8 @@ static int
 
     PyObject* callable = nullptr;
 
-	bool isMain = false;
+	// Format unit "p" writes an int. A bool is one byte and the store corrupts the adjacent pointer.
+	int isMain = 0;
 
 	if( !PyArg_ParseTuple( args, "|Op", &callable, &isMain ) )
 	{
@@ -68,7 +69,7 @@ static int
 
     try
 	{
-		new( tasklet ) Tasklet( reinterpret_cast<PyObject*>( self ), TaskletExit, isMain );
+		new( tasklet ) Tasklet( reinterpret_cast<PyObject*>( self ), TaskletExit, isMain != 0 );
 	}
 	catch( const std::exception& ex )
 	{
@@ -993,7 +994,8 @@ static PyObject*
     PyObject* exception = Py_None;
 	PyObject* value = Py_None;
 	PyObject* tb = Py_None; // TODO not yet used but the test passes which isn't great? 
-	bool pending = false;
+	// Format unit "p" writes an int. Storing it in a bool smashes the exception pointer.
+	int pending = 0;
 
     if( !PyArg_ParseTupleAndKeywords( args, kwds, "|OOOp", (char**)kwlist, &exception, &value, &tb, &pending ) )
 	{
@@ -1007,7 +1009,7 @@ static PyObject*
 		return nullptr;
     }
 
-    if( self->m_implementation->ThrowException( exception, value, tb, pending ) )
+    if( self->m_implementation->ThrowException( exception, value, tb, pending != 0 ) )
     {
 		Py_IncRef( Py_None );
 
@@ -1067,7 +1069,8 @@ static PyObject*
 
 	const char* kwlist[] = { "pending", NULL };
 
-	bool pending = false;
+	// Format unit "p" writes an int, not a bool.
+	int pending = 0;
 
 	if( !PyArg_ParseTupleAndKeywords( args, kwds, "|p", (char**)kwlist, &pending ) )
 	{
@@ -1075,7 +1078,7 @@ static PyObject*
 		return nullptr;
     }
 
-	if( self->m_implementation->Kill( pending ) )
+	if( self->m_implementation->Kill( pending != 0 ) )
 	{
 		Py_IncRef( Py_None );
 
