@@ -46,9 +46,15 @@ target_include_directories(Scheduler
 target_link_libraries(Scheduler
         PUBLIC
         CcpCore
-        PRIVATE
-        Python3::Python
 )
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # The host executable owns the one Python runtime. Linking the static
+    # library into this module copies a second interpreter and the C++ harness
+    # faults while importing it.
+    target_include_directories(Scheduler PRIVATE ${Python3_INCLUDE_DIRS})
+else()
+    target_link_libraries(Scheduler PRIVATE Python3::Python)
+endif()
 
 get_target_property(GREENLET_INCLUDE_DIR Greenlet INTERFACE_INCLUDE_DIRECTORIES)
 
